@@ -42,11 +42,6 @@ class TCPListener extends PortListener {
                     TCPHandler requestHandler = new TCPHandler(server, this.router);
                     requestHandler.start();
 
-//                    DataInputStream input = new DataInputStream(server.getInputStream());
-//                    String msg = input.readUTF();
-//                    if (msg.equals("SHUT-DOWN")) {
-//                        this.isRunning = false;
-//                    }
             }
         } catch (SocketTimeoutException s) {
             System.out.println("Socket timed out!");
@@ -90,17 +85,6 @@ class UDPListener extends PortListener {
                     handler.updatePacket(packet);
                     handler.start();
                 }
-
-//            InetAddress address = packet.getAddress();
-//            int port = packet.getPort();
-//            packet = new DatagramPacket(buf, buf.length, address, port);
-//            String received = new String(packet.getData(), 0, packet.getLength());
-//
-//            if (received.equals("end")) {
-//                running = false;
-//                continue;
-//            }
-//            socket.send(packet);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -108,12 +92,6 @@ class UDPListener extends PortListener {
     }
 }
 
-//abstract class Handler extends Thread{
-//    Socket socket;
-//    Handler(Socket socket){
-//        this.socket = socket;
-//    }
-//}
 
 class TCPHandler extends Thread {
     Socket socket;
@@ -128,10 +106,7 @@ class TCPHandler extends Thread {
             DataInputStream input = new DataInputStream(this.socket.getInputStream());
             DataOutputStream out = new DataOutputStream(this.socket.getOutputStream());
             int num = Integer.parseInt(input.readUTF());
-//            String[] requestedTable = Router.readRoutingTable(this.router.tableFilePrefix,
-//                    this.router.networkSize,this.router.name, num);
             List<Integer> requestedTable = this.router.distanceVectors.get(num);
-//            String test = requestedTable.toString();
             out.writeUTF(requestedTable.toString());
             input.close();
             out.close();
@@ -169,10 +144,7 @@ class UDPHandler extends Thread {
             if (msg.startsWith("FORWARD")){
                 this.router.forwardMessage(this.socket, msg);
             }
-            if (msg.equals("SHUT-DOWN")){
-                this.router.tcpListener.kill();
-                this.router.udpListener.kill();
-            }
+
         } catch (IOException e) {
             e.printStackTrace();
         }
