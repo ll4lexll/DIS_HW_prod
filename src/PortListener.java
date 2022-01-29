@@ -1,6 +1,7 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -40,6 +41,12 @@ class TCPListener extends PortListener {
                     System.out.println("Just connected to " + server.getRemoteSocketAddress());
                     TCPHandler requestHandler = new TCPHandler(server, this.router);
                     requestHandler.start();
+
+//                    DataInputStream input = new DataInputStream(server.getInputStream());
+//                    String msg = input.readUTF();
+//                    if (msg.equals("SHUT-DOWN")) {
+//                        this.isRunning = false;
+//                    }
             }
         } catch (SocketTimeoutException s) {
             System.out.println("Socket timed out!");
@@ -68,8 +75,21 @@ class UDPListener extends PortListener {
                 DatagramPacket packet = new DatagramPacket(handler.buf, handler.buf.length);
                 socket.receive(packet);
 
-                handler.updatePacket(packet);
-                handler.start();
+
+                String msg = new String(packet.getData(), 0, packet.getLength());
+                if (msg.equals("SHUT-DOWN")){
+                    this.router.udpListener.kill();
+                    this.router.tcpListener.kill();
+                    Socket client = new Socket("localhost", this.router.tcpListener.port);
+                    OutputStream outToServer = client.getOutputStream();
+                    DataOutputStream out = new DataOutputStream(outToServer);
+                    out.writeUTF("SHUT-DOWN");
+                    client.close();
+                }
+                else {
+                    handler.updatePacket(packet);
+                    handler.start();
+                }
 
 //            InetAddress address = packet.getAddress();
 //            int port = packet.getPort();
@@ -118,6 +138,8 @@ class TCPHandler extends Thread {
             this.socket.close();
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (NumberFormatException e){
+            System.out.println("Shutting down TCP port "+this.router.tcpListener.port);
         }
     }
 }
@@ -150,15 +172,6 @@ class UDPHandler extends Thread {
             if (msg.equals("SHUT-DOWN")){
                 this.router.tcpListener.kill();
                 this.router.udpListener.kill();
-                String message = "FINISH";
-                byte[] bytesToSend = message.getBytes(StandardCharsets.UTF_8);
-                DatagramPacket packetToSend = new DatagramPacket(bytesToSend, bytesToSend.length, address, port);
-                socket.send(packetToSend);
-                InetAddress addr = InetAddress.getByName("127.0.0.1");
-                packetToSend = new DatagramPacket(bytesToSend, bytesToSend.length, addr, this.router.udpListener.port);
-                socket.send(packetToSend);
-                packetToSend = new DatagramPacket(bytesToSend, bytesToSend.length, addr, this.router.tcpListener.port);
-                socket.send(packetToSend);
             }
         } catch (IOException e) {
             e.printStackTrace();

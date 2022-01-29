@@ -103,9 +103,6 @@ public class Router extends Thread {
 
         }
         this.distanceVectors.put(this.round, distanceVector);
-
-
-
     }
 
     public void printRoutingTable(DatagramSocket socket, InetAddress addressToSend, int port) throws IOException {
@@ -153,30 +150,31 @@ public class Router extends Thread {
     public void updateRoutingTable(DatagramSocket socket, InetAddress addressToSend, int port) throws IOException {
         HashMap<Integer, List<Integer>> neighborsDistanceVector = new HashMap<Integer, List<Integer>>();
         Set<String> routerNeighborsNames = this.neighbors.keySet();
-//        CountDownLatch signal = new CountDownLatch(this.neighbors.size());
         for (String neighbor : routerNeighborsNames) {
             String neighborIp = this.neighbors.get(neighbor).get(0);
             Integer neighborTcp = Integer.parseInt(this.neighbors.get(neighbor).get(2));
 
-//            requestDistanceVector distanceVector = new requestDistanceVector(neighborIp, neighborTcp, this.round, signal);
-//            Thread thread = new Thread(distanceVector);
-//            thread.start();
             List<Integer> distVec = getDistanceVectorFromRouter(neighborIp, neighborTcp, this.round);
             neighborsDistanceVector.put(Integer.valueOf(neighbor), distVec);
 
         }
-        //            signal.await();
         synchronized (this.routingTable) {
             for (int i = 1; i <= this.networkSize; i++) {
                 if (i != this.name) {
                     int minDistance = Integer.MAX_VALUE;
                     int closestNeighbor = -1;
-                    for (String currNeighbor : routerNeighborsNames) {
-                        Integer weight = Integer.valueOf(this.neighbors.get(currNeighbor).get(3));
-                        int currDistance = neighborsDistanceVector.get(Integer.parseInt(currNeighbor)).get(i - 1) + weight;
+                    List<Integer> neighborList = new ArrayList<>();
+                    for (String neighbor : routerNeighborsNames){
+                        neighborList.add(Integer.valueOf(neighbor));
+                    }
+                    Collections.sort(neighborList);
+                    for (Integer currNeighbor : neighborList) {
+                        Integer weight = Integer.valueOf(this.neighbors.get(currNeighbor.toString()).get(3));
+                        int currDistance = neighborsDistanceVector.get(currNeighbor).get(i - 1) + weight;
+//                        Collections.sort((List)routerNeighborsNames);
                         if (currDistance < minDistance) {
                             minDistance = currDistance;
-                            closestNeighbor = Integer.parseInt(currNeighbor);
+                            closestNeighbor = currNeighbor;
                         }
                     }
 
@@ -299,60 +297,6 @@ public class Router extends Thread {
             e.printStackTrace();
         }
     }
-
-//    static class requestDistanceVector implements Runnable{
-//        private CountDownLatch signal;
-//        private int num;
-//        private Socket client;
-//        private List<Integer> distanceVector = new ArrayList<>();
-//
-//        public requestDistanceVector(String ip, int port, int num, CountDownLatch signal){
-//            this.signal = signal;
-//            this.num = num;
-//            try{
-//                this.client = new Socket(ip, port);
-//            } catch (UnknownHostException e) {
-//                e.printStackTrace();
-//            } catch (IOException e) {
-//                e.printStackTrace();System.out.println("connection failed");
-//            }
-//        }
-//
-//        @Override
-//        public void run() {
-//            OutputStream outToServer = null;
-//            try {
-//                outToServer = this.client.getOutputStream();
-//                DataOutputStream out = new DataOutputStream(outToServer);
-//                out.writeUTF(Integer.toString(num));
-//                InputStream inFromServer = this.client.getInputStream();
-//                DataInputStream in = new DataInputStream(inFromServer);
-//                String msg = null;
-//                try{
-//                    msg = in.readUTF();
-//                }catch (SocketException e){
-//                    e.printStackTrace();
-//                }
-//                client.close();
-//                assert msg != null;
-//                List<Integer> distVector = new ArrayList<>();
-//                String[] tempDistVec = msg.split(System.lineSeparator());
-//                for(String dist : tempDistVec){
-//                    this.distanceVector.add(Integer.parseInt(dist));
-//                }
-//                this.signal.countDown();
-//
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//
-//        }
-//
-//        public List<Integer> getDistanceVector() {
-//            return this.distanceVector;
-//        }
-//    }
-
 }
 
 
